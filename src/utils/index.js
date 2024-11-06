@@ -86,7 +86,14 @@ export const generateChartConfigs = (headers, data) => {
                 }
                 const seconds = parseInt(match[2], 10);
                 totalSeconds += seconds;
-                logWorkData.push({ date: day, seconds, month: date.month(), year: date.year(), taskId });
+                logWorkData.push({
+                    original: match[1],
+                    date: day,
+                    seconds,
+                    month: date.month(),
+                    year: date.year(),
+                    taskId
+                });
             }
         }
     }
@@ -100,29 +107,33 @@ export const generateChartConfigs = (headers, data) => {
     const allDays = Array.from({ length: daysInMonth }, (_, i) => {
         const dayNumber = i + 1;
         const date = dayjs().month(currentMonth).year(currentYear).date(dayNumber);
-        return { id: dayNumber, label: `${date.format('DD/MM')}` };
+        const day = date.day();
+        let label = date.format('DD/MM');
+        if (day === 0) label = `<span style="color:red">${date.format('dddDD')}</span>`;
+        if (day === 6) label = `<span style="color:blue">${date.format('dddDD')}</span>`;
+        return { id: dayNumber, label: label, day: date.day() };
     });
 
     const dataTrace = Array.from({ length: maxTrace }, (_, i) => {
+        const yData = allDays.map(day => {
+            const dayNumber = day.id;
+            const logWorks = logWorkData.filter(item => item.date === dayNumber.toString());
+            return secondToHour(logWorks[i]?.seconds);
+        });
         return {
             x: allDays.map(day => day.label),
-            y: allDays.map(day => {
-                const dayNumber = day.id;
-                const logWorks = logWorkData.filter(item => item.date === dayNumber.toString());
-                return secondToHour(logWorks[i]?.seconds);
-            }),
-            text: allDays.map(day => {
-                const dayNumber = day.id;
-                const logWorks = logWorkData.filter(item => item.date === dayNumber.toString());
-                return `${secondToHour(logWorks[i]?.seconds)}h`;
-            }),
+            y: yData,
+            text: yData.map(value => `${value}h`),
             textposition: 'inside',
             type: 'bar',
             name: `Log Work ${i + 1}`,
             hovertemplate: allDays.map(day => {
                 const dayNumber = day.id;
                 const logWorks = logWorkData.filter(item => item.date === dayNumber.toString());
-                return `<b>Date</b>: %{x}<br><b>Log</b>: %{y:.2f}h<extra><b>${logWorks[i]?.taskId}</b></extra>`;
+                const logWorkItem = logWorks[i];
+                if (!logWorkItem) return '-';
+                const fullDate = dayjs(logWorkItem.original).format('dddd HH:mm DD/MM/YYYY');
+                return `<b>${fullDate}</b><br><b>Log</b>: %{y:.2f}h<extra><b>${logWorkItem.taskId}</b></extra>`;
             })
         };
     });

@@ -39,7 +39,13 @@ const App = () => {
         <div className='p-4'>
             <h1 className='text-center text-4xl'>REPORT DATA</h1>
             <div className='my-4 text-center' >
-                <input type="file" onChange={handleFileChange} />
+                <a
+                    className='text-center underline text-blue-500'
+                    href="https://github.com/Duc-Developer/jr_reporter#readme"
+                    target='_blank'>
+                    Guide
+                </a>
+                <input className='ml-4' type="file" onChange={handleFileChange} />
             </div>
             {parsedCsv.data.length
                 ?
