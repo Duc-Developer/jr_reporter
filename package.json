@@ -1,0 +1,23 @@
+{
+  "name": "jira-report",
+  "version": "1.0.0",
+  "description": "This is script for support report perfomance as a chart",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "author": "David",
+  "homepage": "https://github.com/Duc-Developer",
+  "license": "ISC",
+  "dependencies": {
+    "csv-parser": "^3.0.0",
+    "dayjs": "^1.11.13",
+    "express": "^4.21.1",
+    "open": "^10.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}
