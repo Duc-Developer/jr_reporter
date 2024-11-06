@@ -1,6 +1,7 @@
 import React from 'react'
 import dayjs from 'dayjs'
 import { secondToHour } from '../utils/index'
+import { JIRA_ISSUE_PATH } from '../constants'
 
 const Table = ({ headers, data }) => {
     return (
@@ -53,7 +54,7 @@ const Table = ({ headers, data }) => {
                                 const issueKey = cellContent;
                                 if (issueKey) {
                                     cellContent = <a
-                                        href={`https://jira.com/browse/${issueKey}`}
+                                        href={`${JIRA_ISSUE_PATH}/${issueKey}`}
                                         target='_blank'
                                         rel='noreferrer'
                                         className='underline cursor-pointer text-blue-600'
