@@ -24,5 +24,13 @@ export .csv file with option `CSV (All fields)` .
 
 Upload your csv to file input and enjoy
 
+<video width="600" controls autoplay>
+  <source src="https://res.cloudinary.com/drwgmpzuh/video/upload/v1731132517/git_jr_reporter/guide_for_use_jr_reporter_gurr2r.mov"
+  type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+---
+
 > [!NOTE]
 > I just only support **.csv** file, please do not use another type

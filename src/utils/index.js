@@ -44,6 +44,7 @@ export const convertHeaders = (headerKeys) => {
     return headers;
 };
 
+const matchedDateNumber =  (item, dayNumber) => Number(item.date) === dayNumber;
 export const generateChartConfigs = (headers, data, userMail) => {
     const results = {
         data: [],
@@ -121,7 +122,7 @@ export const generateChartConfigs = (headers, data, userMail) => {
     const dataTrace = Array.from({ length: maxTrace }, (_, i) => {
         const yData = allDays.map(day => {
             const dayNumber = day.id;
-            const logWorks = logWorkData.filter(item => item.date === dayNumber.toString());
+            const logWorks = logWorkData.filter(item => matchedDateNumber(item, dayNumber));
             return secondToHour(logWorks[i]?.seconds);
         });
         return {
@@ -133,7 +134,7 @@ export const generateChartConfigs = (headers, data, userMail) => {
             name: `Log Work ${i + 1}`,
             hovertemplate: allDays.map(day => {
                 const dayNumber = day.id;
-                const logWorks = logWorkData.filter(item => item.date === dayNumber.toString());
+                const logWorks = logWorkData.filter(item => matchedDateNumber(item, dayNumber));
                 const logWorkItem = logWorks[i];
                 if (!logWorkItem) return '-';
                 const fullDate = dayjs(logWorkItem.original).format('dddd HH:mm DD/MM/YYYY');
