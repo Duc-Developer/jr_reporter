@@ -23,7 +23,7 @@ const App = () => {
                 skipEmptyLines: true,
                 complete: (result) => {
                     const newAllData = groupedCSVByAssignee(result);
-                    const newAssignees = Object.keys(newAllData.group ?? {});
+                    const newAssignees = Object.keys(newAllData.group ?? {}).sort();
                     if (!newAllData.headers?.length || !newAssignees.length) {
                         alert('Convert CSV file failed. Please check the file format and try again.')
                         return;
