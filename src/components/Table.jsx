@@ -3,7 +3,7 @@ import dayjs from 'dayjs'
 import { parseLogWorkInfo, secondToHour } from '../utils/index'
 import { JIRA_ISSUE_PATH } from '../constants'
 
-const Table = ({ headers, data, selectedUser }) => {
+const Table = ({ headers, data, selectedUser, monthTarget }) => {
     return (
         <table className="divide-y divide-white-200">
             <thead className="bg-white text-black">
@@ -27,25 +27,30 @@ const Table = ({ headers, data, selectedUser }) => {
                                     const { logWorkAt, logWorkBy, seconds } = parseLogWorkInfo(logWorkValue);
                                     if (logWorkAt && logWorkBy && seconds) {
                                         const formattedDate = dayjs(logWorkAt, 'DD/MMM/YY h:mm A').format('HH:mm DD-MM');
-                                        listTag.push({ date: formattedDate, log: `${secondToHour(seconds)}h`, logWorkBy });
+                                        const logWorkMonth = dayjs(logWorkAt, 'DD/MMM/YY h:mm A').month();
+                                        listTag.push({ date: formattedDate, log: `${secondToHour(seconds)}h`, logWorkBy, logWorkMonth });
                                     } else {
                                         listTag.push(logWorkValue);
                                     }
                                 }
                                 cellContent = <div className='flex flex-wrap gap-2'>
-                                    {listTag.map((tag, index) => (<div key={index}>
-                                        {typeof tag === "object"
-                                            ? <div className={`flex ${selectedUser && selectedUser.toLowerCase() !== tag.logWorkBy?.toLowerCase()
-                                                ? "line-through"
-                                                : ""}`}
-                                                title={tag.logWorkBy}
-                                            >
-                                                <div className='whitespace-nowrap px-1 w-22 bg-blue-600'>{tag.date}</div>
-                                                <div className='whitespace-nowrap px-1 bg-red-600 rounded-r-lg'>{tag.log}</div>
-                                            </div>
-                                            : <p className='px-2 bg-gray-100 rounded text-black line-through'>{tag}</p>
-                                        }
-                                    </div>))}
+                                    {listTag.map((tag, index) => {
+                                        const invalidUser = selectedUser && selectedUser.toLowerCase() !== tag.logWorkBy?.toLowerCase()
+                                        const dateLog = monthTarget && Number(tag.logWorkMonth) !== Number(monthTarget)
+                                        return <div key={index}>
+                                            {typeof tag === "object"
+                                                ? <div className={`flex ${invalidUser || dateLog
+                                                    ? "line-through"
+                                                    : ""}`}
+                                                    title={tag.logWorkBy}
+                                                >
+                                                    <div className='whitespace-nowrap px-1 w-22 bg-blue-600'>{tag.date}</div>
+                                                    <div className='whitespace-nowrap px-1 bg-red-600 rounded-r-lg'>{tag.log}</div>
+                                                </div>
+                                                : <p className='px-2 bg-gray-100 rounded text-black line-through'>{tag}</p>
+                                            }
+                                        </div>
+                                    })}
                                 </div>;
                             } else if (header.label === 'Status') {
                                 if (["Done", "Resolved"].includes(cellContent)) {

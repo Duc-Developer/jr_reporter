@@ -44,8 +44,8 @@ export const convertHeaders = (headerKeys) => {
     return headers;
 };
 
-const matchedDateNumber =  (item, dayNumber) => Number(item.date) === dayNumber;
-export const generateChartConfigs = (headers, data, userMail) => {
+const matchedDateNumber = (item, dayNumber) => Number(item.date) === dayNumber;
+export const generateChartConfigs = (headers, data, userMail, monthTarget) => {
     const results = {
         data: [],
         layout: {
@@ -78,6 +78,9 @@ export const generateChartConfigs = (headers, data, userMail) => {
                 const isDifferentUser = userMail && logWorkBy && userMail.toLowerCase() !== logWorkBy.toLowerCase();
                 if (!logWorkAt || !logWorkBy || !logSeconds || isDifferentUser) continue;
                 const date = dayjs(logWorkAt, 'DD/MMM/YY h:mm A');
+                const month = date.month();
+                const inValidDate = monthTarget && month !== Number(monthTarget);
+                if (inValidDate) continue;
                 const day = date.format('DD');
                 const taskId = row["Issue key"];
 
@@ -107,7 +110,9 @@ export const generateChartConfigs = (headers, data, userMail) => {
 
     // Determine the month and year from the first log entry
     if (!logWorkData.length) return results;
-    const { month: currentMonth, year: currentYear } = logWorkData[0];
+    const { month: currentMonth, year: currentYear } = monthTarget
+        ? { month: monthTarget, year: logWorkData[0]?.year ?? dayjs().month(monthTarget).year() }
+        : logWorkData[0];
     const daysInMonth = dayjs().month(currentMonth).year(currentYear).daysInMonth();
     const allDays = Array.from({ length: daysInMonth }, (_, i) => {
         const dayNumber = i + 1;
@@ -153,7 +158,7 @@ export const generateChartConfigs = (headers, data, userMail) => {
     return results;
 };
 
-export const generateChartOverviewConfigs = (headers, allData) => {
+export const generateChartOverviewConfigs = (headers, allData, monthTarget) => {
     const results = {
         data: [],
         layout: {
@@ -189,7 +194,8 @@ export const generateChartOverviewConfigs = (headers, allData) => {
 
                     const { logWorkAt, logWorkBy, seconds: logSeconds } = parseLogWorkInfo(value);
                     const isDifferentUser = logWorkBy && assignee.toLowerCase() !== logWorkBy.toLowerCase();
-                    if (!logWorkAt || !logWorkBy || !logSeconds || isDifferentUser) continue;
+                    const inValidDate = monthTarget && logWorkAt && Number(dayjs(logWorkAt, 'DD/MMM/YY h:mm A').month()) !== Number(monthTarget);
+                    if (!logWorkAt || !logWorkBy || !logSeconds || isDifferentUser || inValidDate) continue;
                     seconds += parseInt(logSeconds, 10);
                 }
             }

@@ -4,6 +4,22 @@ import Table from './components/Table'
 import { convertHeaders, generateChartConfigs, groupedCSVByAssignee, generateChartOverviewConfigs } from './utils'
 import Plot from 'react-plotly.js';
 
+const MONTHS = [
+    { label: 'No Choice', value: "" },
+    { label: 'January', value: "0" },
+    { label: 'February', value: "1" },
+    { label: 'March', value: "2" },
+    { label: 'April', value: "3" },
+    { label: 'May', value: "4" },
+    { label: 'June', value: "5" },
+    { label: 'July', value: "6" },
+    { label: 'August', value: "7" },
+    { label: 'September', value: "8" },
+    { label: 'October', value: "9" },
+    { label: 'November', value: "10" },
+    { label: 'December', value: "11" }
+]
+
 const App = () => {
     const [allData, setAllData] = useState({
         headers: [],
@@ -12,6 +28,7 @@ const App = () => {
     const [assignees, setAssignees] = useState([]);
     const [selectedAssignee, setSelectedAssign] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [selectedMonth, setSelectedMonth] = useState(MONTHS[0]);
 
     const handleFileChange = (event) => {
         const file = event.target.files[0]
@@ -45,17 +62,17 @@ const App = () => {
 
         if (!data) return { chart: {}, table: {} };
         return {
-            chart: generateChartConfigs(convertHeaders(allData.headers), data, selectedAssignee),
+            chart: generateChartConfigs(convertHeaders(allData.headers), data, selectedAssignee, selectedMonth.value),
             table: {
                 headers: convertHeaders(allData.headers),
                 data: data
             }
         };
-    }, [allData, selectedAssignee]);
+    }, [allData, selectedAssignee, selectedMonth]);
 
     const overviewChart = useMemo(() => {
-        return generateChartOverviewConfigs(convertHeaders(allData.headers), allData);
-    }, [allData]);
+        return generateChartOverviewConfigs(convertHeaders(allData.headers), allData, selectedMonth.value);
+    }, [allData, selectedMonth]);
 
     return (
         <div className='p-4'>
@@ -83,6 +100,22 @@ const App = () => {
                         {assignees.map((assignee) => (
                             <option key={assignee} value={assignee}>
                                 {assignee}
+                            </option>
+                        ))}
+                    </select>
+                    <select
+                        title='Select month for sanitizing data before showing'
+                        className='absolute -top-12 left-0 px-4 py-2 bg-red-900 rounded z-1'
+                        value={selectedMonth.value}
+                        onChange={(e) => {
+                            const newValue = e.target.value;
+                            const selected = MONTHS.find(month => month.value === newValue);
+                            setSelectedMonth(selected);
+                        }}
+                    >
+                        {MONTHS.map((month) => (
+                            <option key={month.value} value={month.value}>
+                                {month.label}
                             </option>
                         ))}
                     </select>
@@ -126,6 +159,7 @@ const App = () => {
                                 headers={csvData.table.headers}
                                 data={csvData.table.data}
                                 selectedUser={selectedAssignee}
+                                monthTarget={selectedMonth.value}
                             />
                         </div>
                     </div>
