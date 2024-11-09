@@ -23,7 +23,9 @@ const App = () => {
                 skipEmptyLines: true,
                 complete: (result) => {
                     const newAllData = groupedCSVByAssignee(result);
-                    const newAssignees = Object.keys(newAllData.group ?? {}).sort();
+                    const newAssignees = Object.keys(newAllData.group ?? {}).sort(
+                        (a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' })
+                    );
                     if (!newAllData.headers?.length || !newAssignees.length) {
                         alert('Convert CSV file failed. Please check the file format and try again.')
                         return;
