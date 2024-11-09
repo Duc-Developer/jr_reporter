@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 
 export const secondToHour = (seconds) => {
     if (!seconds) return 0;
-    return seconds / 3600;
+    return (seconds / 3600).toFixed(2);
 };
 
 export const convertHeaders = (headerKeys) => {
@@ -44,12 +44,12 @@ export const convertHeaders = (headerKeys) => {
     return headers;
 };
 
-export const generateChartConfigs = (headers, data) => {
+export const generateChartConfigs = (headers, data, userMail) => {
     const results = {
         data: [],
         layout: {
             xaxis: {
-                title: 'Date',
+                title: 'Log Work When (day/month)',
                 tickangle: -45
             },
             yaxis: {
@@ -73,9 +73,10 @@ export const generateChartConfigs = (headers, data) => {
                 const value = row[key];
                 if (!value || value.trim() === '') continue;
 
-                const match = value.match(/(\d{2}\/\w{3}\/\d{2} \d{1,2}:\d{2} [APM]{2});.*?;(\d+)/);
-                if (!match) continue;
-                const date = dayjs(match[1], 'DD/MMM/YY h:mm A');
+                const { logWorkAt, logWorkBy, seconds: logSeconds } = parseLogWorkInfo(value);
+                const isDifferentUser = userMail && logWorkBy && userMail.toLowerCase() !== logWorkBy.toLowerCase();
+                if (!logWorkAt || !logWorkBy || !logSeconds || isDifferentUser) continue;
+                const date = dayjs(logWorkAt, 'DD/MMM/YY h:mm A');
                 const day = date.format('DD');
                 const taskId = row["Issue key"];
 
@@ -84,10 +85,10 @@ export const generateChartConfigs = (headers, data) => {
                 } else {
                     counters[day] += 1;
                 }
-                const seconds = parseInt(match[2], 10);
+                const seconds = parseInt(logSeconds, 10);
                 totalSeconds += seconds;
                 logWorkData.push({
-                    original: match[1],
+                    original: logWorkAt,
                     date: day,
                     seconds,
                     month: date.month(),
@@ -98,10 +99,13 @@ export const generateChartConfigs = (headers, data) => {
         }
     }
 
-    const maxTrace = counters[Object.keys(counters).reduce((a, b) => counters[a] > counters[b] ? a : b)];
+    const totalCounterRecords = Object.keys(counters).length;
+    const maxTrace = totalCounterRecords > 0
+        ? counters[Object.keys(counters).reduce((a, b) => counters[a] > counters[b] ? a : b)]
+        : 0;
 
     // Determine the month and year from the first log entry
-    if (!logWorkData.length) return;
+    if (!logWorkData.length) return results;
     const { month: currentMonth, year: currentYear } = logWorkData[0];
     const daysInMonth = dayjs().month(currentMonth).year(currentYear).daysInMonth();
     const allDays = Array.from({ length: daysInMonth }, (_, i) => {
@@ -138,8 +142,117 @@ export const generateChartConfigs = (headers, data) => {
         };
     });
 
-
-    results.layout.title = `<b>${secondToHour(totalSeconds)}h</b> Log Work of <b>${dayjs().month(currentMonth).year(currentYear).format('MM-YYYY')}</b>`;
-    results.data = dataTrace;
+    const assignee = data[0]['Assignee'];
+    results.layout.title = `<b>${secondToHour(totalSeconds)}h</b> log work`;
+    if (assignee) {
+        results.layout.title += ` of <b>${assignee}</b>`;
+    }
+    results.layout.title += ` in <b>${dayjs().month(currentMonth).year(currentYear).format('MM-YYYY')}</b>`;
+    results.data = dataTrace ?? [];
     return results;
+};
+
+export const generateChartOverviewConfigs = (headers, allData) => {
+    const results = {
+        data: [],
+        layout: {
+            xaxis: {
+                title: 'Assignee',
+                tickangle: -45
+            },
+            yaxis: {
+                title: 'hours'
+            },
+            barmode: 'group',
+            hovermode: 'closest',
+            margin: {
+                t: 100,
+                b: 150
+            }
+        }
+    };
+    if (!headers.length || !Object.keys(allData.group).length) return results;
+
+    const assignees = Object.keys(allData.group);
+    let totalLogWorkSeconds = 0;
+    const logWorkData = assignees.map(assignee => {
+        const rows = allData.group[assignee];
+        let seconds = 0;
+
+        for (const row of rows) {
+            for (const header of headers) {
+                if (header.label !== 'Log Work') continue;
+                for (const key of header.keys) {
+                    const value = row[key];
+                    if (!value || value.trim() === '') continue;
+
+                    const { logWorkAt, logWorkBy, seconds: logSeconds } = parseLogWorkInfo(value);
+                    const isDifferentUser = logWorkBy && assignee.toLowerCase() !== logWorkBy.toLowerCase();
+                    if (!logWorkAt || !logWorkBy || !logSeconds || isDifferentUser) continue;
+                    seconds += parseInt(logSeconds, 10);
+                }
+            }
+        }
+
+        totalLogWorkSeconds += seconds;
+        return {
+            assignee,
+            hours: secondToHour(seconds)
+        };
+    });
+
+    results.data = [{
+        x: logWorkData.map(item => item.assignee),
+        y: logWorkData.map(item => item.hours),
+        text: logWorkData.map(item => `${item.hours}h`),
+        textposition: 'inside',
+        type: 'bar',
+        name: 'Log Work',
+        hovertemplate: logWorkData.map(item => `<b>${item.assignee}</b><br><b>Log</b>: %{y:.2f}h<extra></extra>`),
+        marker: {
+            color: logWorkData.map((_, index) => {
+                const colors = ["#FF0000", "#0000FF", "#008000", "#FFFF00", "#800080", "#FFA500", "#FFC0CB", "#A52A2A", "#808080", "#000000"];
+                const brightness = 0.8; // Adjust brightness (0.0 - 1.0)
+                const adjustBrightness = (hex, brightness) => {
+                    const rgb = parseInt(hex.slice(1), 16);
+                    const r = Math.min(255, Math.floor(((rgb >> 16) & 0xff) * brightness));
+                    const g = Math.min(255, Math.floor(((rgb >> 8) & 0xff) * brightness));
+                    const b = Math.min(255, Math.floor((rgb & 0xff) * brightness));
+                    return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
+                };
+                return adjustBrightness(colors[index % colors.length], brightness);
+            })
+        },
+    }];
+
+    results.layout.title = `<b>${secondToHour(totalLogWorkSeconds)}h</b> log work of Team`;
+    return results;
+};
+
+export const groupedCSVByAssignee = (data) => {
+    const results = {
+        headers: [],
+        group: {}
+    };
+    if (!data?.data?.length) return results;
+    results.headers = data.meta?.fields ?? [];
+    for (const row of data.data) {
+        const assignee = row['Assignee'];
+        if (!assignee) continue;
+        if (!results.group[assignee]) {
+            results.group[assignee] = [];
+        }
+        results.group[assignee].push(row);
+    }
+    return results;
+};
+
+export const parseLogWorkInfo = (logWorkValue) => {
+    if (!logWorkValue || logWorkValue.trim() === '') return {};
+    const [original, logWorkAt, logWorkBy, seconds] = /(\d{2}\/\w{3}\/\d{2} \d{1,2}:\d{2} [APM]{2});(.*?);(\d+)/.exec(logWorkValue) ?? [];
+    if (logWorkAt && logWorkBy && seconds) {
+        return { original, logWorkAt, logWorkBy, seconds };
+    } else {
+        return {};
+    }
 };

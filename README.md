@@ -8,13 +8,14 @@ Open your issue in [jira.fpt.com](https://jira.fpt.com/home/issues)
 
 1. For report log works - create query filter issue
 
-```javascript
-issuetype = <type> AND created >= <start_date> AND created <= <end_date> AND assignee = currentUser()
-```
-
-example:
+query with `created`:
 ```
 issuetype = Sub-task AND created >= 2024-10-1 AND created <= 2024-10-31 AND assignee = currentUser()
+```
+
+or u can query with `logWorkDate`
+```
+issuetype = Sub-task AND worklogDate >= startOfMonth() AND worklogDate <= endOfMonth() AND assignee = currentUser()
 ```
 
 export .csv file with option `CSV (All fields)` .

@@ -1,9 +1,9 @@
 import React from 'react'
 import dayjs from 'dayjs'
-import { secondToHour } from '../utils/index'
+import { parseLogWorkInfo, secondToHour } from '../utils/index'
 import { JIRA_ISSUE_PATH } from '../constants'
 
-const Table = ({ headers, data }) => {
+const Table = ({ headers, data, selectedUser }) => {
     return (
         <table className="divide-y divide-white-200">
             <thead className="bg-white text-black">
@@ -24,11 +24,10 @@ const Table = ({ headers, data }) => {
                                 const listTag = [];
                                 for (const headerKey of header.keys) {
                                     const logWorkValue = row[headerKey];
-                                    if (!logWorkValue || logWorkValue.trim() === '') continue;
-                                    const match = logWorkValue.match(/(\d{2}\/\w{3}\/\d{2} \d{1,2}:\d{2} [APM]{2});.*?;(\d+)/);
-                                    if (match) {
-                                        const formattedDate = dayjs(match[1], 'DD/MMM/YY h:mm A').format('HH:mm DD-MM');
-                                        listTag.push({ date: formattedDate, log: `${secondToHour(match[2])}h` });
+                                    const { logWorkAt, logWorkBy, seconds } = parseLogWorkInfo(logWorkValue);
+                                    if (logWorkAt && logWorkBy && seconds) {
+                                        const formattedDate = dayjs(logWorkAt, 'DD/MMM/YY h:mm A').format('HH:mm DD-MM');
+                                        listTag.push({ date: formattedDate, log: `${secondToHour(seconds)}h`, logWorkBy });
                                     } else {
                                         listTag.push(logWorkValue);
                                     }
@@ -36,11 +35,15 @@ const Table = ({ headers, data }) => {
                                 cellContent = <div className='flex flex-wrap gap-2'>
                                     {listTag.map((tag, index) => (<div key={index}>
                                         {typeof tag === "object"
-                                            ? <div className='flex'>
+                                            ? <div className={`flex ${selectedUser && selectedUser.toLowerCase() !== tag.logWorkBy?.toLowerCase()
+                                                ? "line-through"
+                                                : ""}`}
+                                                title={tag.logWorkBy}
+                                            >
                                                 <div className='whitespace-nowrap px-1 w-22 bg-blue-600'>{tag.date}</div>
                                                 <div className='whitespace-nowrap px-1 bg-red-600 rounded-r-lg'>{tag.log}</div>
                                             </div>
-                                            : <span>{tag}</span>
+                                            : <p className='px-2 bg-gray-100 rounded text-black line-through'>{tag}</p>
                                         }
                                     </div>))}
                                 </div>;

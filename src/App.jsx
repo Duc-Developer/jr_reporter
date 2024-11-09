@@ -1,14 +1,16 @@
 import React, { useMemo, useState } from 'react'
 import Papa from 'papaparse'
 import Table from './components/Table'
-import { convertHeaders, generateChartConfigs } from './utils'
+import { convertHeaders, generateChartConfigs, groupedCSVByAssignee, generateChartOverviewConfigs } from './utils'
 import Plot from 'react-plotly.js';
 
 const App = () => {
-    const [parsedCsv, setParsedCsv] = useState({
+    const [allData, setAllData] = useState({
         headers: [],
-        data: []
-    })
+        group: {}
+    });
+    const [assignees, setAssignees] = useState([]);
+    const [selectedAssignee, setSelectedAssign] = useState("");
     const [isModalOpen, setIsModalOpen] = useState(false)
 
     const handleFileChange = (event) => {
@@ -20,10 +22,15 @@ const App = () => {
                 quoteChar: '"',
                 skipEmptyLines: true,
                 complete: (result) => {
-                    setParsedCsv({
-                        headers: result.meta.fields,
-                        data: result.data
-                    })
+                    const newAllData = groupedCSVByAssignee(result);
+                    const newAssignees = Object.keys(newAllData.group ?? {});
+                    if (!newAllData.headers?.length || !newAssignees.length) {
+                        alert('Convert CSV file failed. Please check the file format and try again.')
+                        return;
+                    };
+                    setSelectedAssign(newAssignees[0]);
+                    setAssignees(newAssignees);
+                    setAllData(newAllData);
                 },
             })
         } else {
@@ -31,9 +38,22 @@ const App = () => {
         }
     }
 
-    const chart = useMemo(() => {
-        return generateChartConfigs(convertHeaders(parsedCsv.headers), parsedCsv.data);
-    }, [parsedCsv]);
+    const csvData = useMemo(() => {
+        const data = selectedAssignee ? allData.group[selectedAssignee] : allData.group[Object.keys(allData.group)[0]];
+
+        if (!data) return { chart: {}, table: {} };
+        return {
+            chart: generateChartConfigs(convertHeaders(allData.headers), data, selectedAssignee),
+            table: {
+                headers: convertHeaders(allData.headers),
+                data: data
+            }
+        };
+    }, [allData, selectedAssignee]);
+
+    const overviewChart = useMemo(() => {
+        return generateChartOverviewConfigs(convertHeaders(allData.headers), allData);
+    }, [allData]);
 
     return (
         <div className='p-4'>
@@ -47,9 +67,23 @@ const App = () => {
                 </a>
                 <input className='ml-4' type="file" onChange={handleFileChange} />
             </div>
-            {parsedCsv.data.length
+            {Object.keys(allData.group ?? {}).length
                 ?
                 <div className='relative'>
+                    <select
+                        className='absolute -top-12 right-36 px-4 py-2 bg-green-900 rounded z-1'
+                        value={selectedAssignee}
+                        onChange={(e) => {
+                            if (!e.target.value) return;
+                            setSelectedAssign(e.target.value);
+                        }}
+                    >
+                        {assignees.map((assignee) => (
+                            <option key={assignee} value={assignee}>
+                                {assignee}
+                            </option>
+                        ))}
+                    </select>
                     <button
                         className='mt-4 px-4 py-2 bg-blue-500 text-white rounded absolute -top-16 right-2 z-1'
                         onClick={() => setIsModalOpen(true)}
@@ -57,8 +91,15 @@ const App = () => {
                         Show Table
                     </button>
                     <Plot
-                        data={chart.data}
-                        layout={chart.layout}
+                        data={csvData.chart.data}
+                        layout={csvData.chart.layout}
+                        style={{ width: '100%', height: 600 }}
+                        config={{ responsive: true, displayModeBar: false }}
+                    />
+                    <hr className='my-4' />
+                    <Plot
+                        data={overviewChart.data}
+                        layout={overviewChart.layout}
                         style={{ width: '100%', height: 600 }}
                         config={{ responsive: true, displayModeBar: false }}
                     />
@@ -79,7 +120,11 @@ const App = () => {
                             </button>
                         </div>
                         <div className='p-4'>
-                            <Table headers={convertHeaders(parsedCsv.headers)} data={parsedCsv.data} />
+                            <Table
+                                headers={csvData.table.headers}
+                                data={csvData.table.data}
+                                selectedUser={selectedAssignee}
+                            />
                         </div>
                     </div>
                 </div>
