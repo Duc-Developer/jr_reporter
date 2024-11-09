@@ -23,13 +23,6 @@ export .csv file with option `CSV (All fields)` .
 ![example_screen_shot](/public/images/example_1.png)
 
 Upload your csv to file input and enjoy
-
-<video width="600" controls autoplay>
-  <source src="https://res.cloudinary.com/drwgmpzuh/video/upload/v1731132517/git_jr_reporter/guide_for_use_jr_reporter_gurr2r.mov"
-  type="video/mp4">
-  Your browser does not support the video tag.
-</video>
-
 ---
 
 > [!NOTE]
