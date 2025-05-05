@@ -22,7 +22,7 @@ export .csv file with option `CSV (All fields)` .
 
 ![example_screen_shot](/public/images/example_1.png)
 
-Upload your csv to file input and enjoy
+Visit [my page](https://duc-developer.github.io/jr_reporter/), upload your csv to file input and enjoy
 ---
 
 > [!NOTE]
